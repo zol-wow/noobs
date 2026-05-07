@@ -9,3 +9,10 @@ src/compile_commands.json
 bin/win32-x64-116
 win-capture/
 .npmrc
+.DS_Store
+
+# macOS libobs, plugins and data, built by scripts/build-libobs-mac.sh
+# from the warcraft-recorder-obs-studio fork.
+Frameworks/
+PlugIns/
+data/
