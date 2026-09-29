@@ -527,6 +527,15 @@ std::string ObsInterface::createSource(std::string name, std::string type) {
   // So pass it back to the client to avoid potential for a mismatch.
   std::string real_name = obs_source_get_name(source);
 
+#ifdef __APPLE__
+  // ScreenCaptureKit video capture also captures the audio of whatever it
+  // captures. Audio comes from the dedicated audio sources, so keep this
+  // out of the mix or the game is recorded twice.
+  if (type == "screen_capture") {
+    obs_source_set_audio_mixers(source, 0);
+  }
+#endif
+
   if (type == AUDIO_OUTPUT || type == AUDIO_INPUT || type == AUDIO_PROCESS) {
     blog(LOG_INFO, "Creating volmeter for source: %s", real_name.c_str());
 
