@@ -1167,6 +1167,12 @@ ObsInterface::~ObsInterface() {
   }
   volmeter_cb_ctx.clear();
 
+  // Force stopping an active output below emits signals, so disconnect
+  // before freeing the contexts the signal handlers are given.
+  if (output) {
+    disconnect_signal_handlers(output);
+  }
+
   delete starting_ctx;
   delete start_ctx;
   delete stopping_ctx;
