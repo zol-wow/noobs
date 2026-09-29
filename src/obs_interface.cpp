@@ -216,15 +216,20 @@ void ObsInterface::init_obs(const std::string& distPath) {
   g_mac_graphics_module_path = basePath + "Frameworks/libobs-opengl.dylib";
   blog(LOG_INFO, "Mac graphics module path: %s", g_mac_graphics_module_path.c_str());
 
-  // obs-ffmpeg's plugin spawns the obs-ffmpeg-mux helper binary via
-  // os_get_executable_path_ptr, which returns a path next to the host
-  // process (Node/Electron) rather than next to libobs. Tell the
-  // plugin where to actually find the muxer via an env override that
-  // we patched into the obs-ffmpeg.plugin source. See
-  // ../obs-studio/plugins/obs-ffmpeg/obs-ffmpeg-mux.c.
-  std::string ffmpegMuxPath = basePath + "Frameworks/obs-ffmpeg-mux";
-  setenv("OBS_FFMPEG_MUX", ffmpegMuxPath.c_str(), 1);
-  blog(LOG_INFO, "OBS_FFMPEG_MUX override: %s", ffmpegMuxPath.c_str());
+  // obs-ffmpeg spawns the obs-ffmpeg-mux helper from next to the host
+  // executable (Node/Electron), and falls back to a PATH search when
+  // it isn't there. Put our Frameworks/ dir, which holds the helper,
+  // at the front of PATH. Mirrors what index.js does for the DLLs on
+  // Windows.
+  std::string frameworksPath = basePath + "Frameworks";
+  const char* existingPath = getenv("PATH");
+  std::string newPath = frameworksPath;
+  if (existingPath && *existingPath) {
+    newPath += ":";
+    newPath += existingPath;
+  }
+  setenv("PATH", newPath.c_str(), 1);
+  blog(LOG_INFO, "Prepended %s to PATH for obs-ffmpeg-mux", frameworksPath.c_str());
 #endif
 #ifdef _WIN32
   // Windows layout (mirrors obs-studio's Windows install):
