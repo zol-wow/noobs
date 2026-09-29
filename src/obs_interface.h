@@ -101,6 +101,9 @@ class ObsInterface {
     void showPreview(); // Show the preview display.
     void hidePreview(); // Hide the preview display, but leave it running.
     void disablePreview(); // Disable the preview display, to save resources.
+#ifdef __APPLE__
+    void destroyPreview(); // Release the preview child window, after obs_shutdown.
+#endif
     PreviewInfo getPreviewInfo(); // Get the dimensions of the display, and the base canvas.
     void setDrawSourceOutline(bool enabled); // Red box around source
     bool getDrawSourceOutlineEnabled();
@@ -138,6 +141,9 @@ class ObsInterface {
     // BrowserWindow's NSWindow. Stored as opaque ptr so the header
     // stays free of Cocoa types. Unused on Win.
     uintptr_t preview_child_window = 0;
+    // Mac NSWindow of the view passed to initPreview, which the child
+    // window attaches to. Not retained, the host owns it. Unused on Win.
+    uintptr_t preview_parent_window = 0;
     Napi::ThreadSafeFunction jscb; // javascript callback
     std::string recording_path = ""; 
     std::string unbuffered_output_filename = "";

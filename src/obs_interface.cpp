@@ -1234,6 +1234,11 @@ ObsInterface::~ObsInterface() {
   blog(LOG_DEBUG, "Now shutting down OBS");
   obs_shutdown();
 
+#ifdef __APPLE__
+  // The display rendering into it is gone once OBS has shut down.
+  destroyPreview();
+#endif
+
   if (jscb) {
     blog(LOG_DEBUG, "Releasing JavaScript callback");
     jscb.Release();

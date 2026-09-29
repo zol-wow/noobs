@@ -40,16 +40,22 @@ void ObsInterface::initPreview(uintptr_t parentHandle) {
   blog(LOG_INFO, "ObsInterface::initPreview (mac) parent=%p",
        reinterpret_cast<void *>(parentHandle));
 
+  if (preview_child_window) {
+    blog(LOG_INFO, "initPreview: preview already initialized");
+    return;
+  }
+
   NSView *parentView = to_view(parentHandle);
   if (!parentView) {
     blog(LOG_ERROR, "initPreview: null parent handle");
     return;
   }
 
+  __block NSWindow *parentWindow = nil;
   __block NSWindow *childWindow = nil;
   __block NSView *canvasView = nil;
   dispatch_block_t setup = ^{
-    NSWindow *parentWindow = [parentView window];
+    parentWindow = [parentView window];
     if (!parentWindow) {
       blog(LOG_ERROR, "initPreview: parent view has no window yet");
       return;
@@ -101,6 +107,8 @@ void ObsInterface::initPreview(uintptr_t parentHandle) {
   preview_handle = reinterpret_cast<uintptr_t>(CFBridgingRetain(canvasView));
   preview_child_window =
       reinterpret_cast<uintptr_t>(CFBridgingRetain(childWindow));
+  preview_parent_window =
+      reinterpret_cast<uintptr_t>((__bridge void *)parentWindow);
 
   if (!display) {
     gs_init_data gs_data = {};
@@ -147,6 +155,9 @@ void ObsInterface::configurePreview(int x, int y, int width, int height) {
     return;
   }
 
+  // Attached lazily here rather than in initPreview, see the note there.
+  NSWindow *targetParent = to_window(preview_parent_window);
+
   __block CGFloat backingScale = 1.0;
   dispatch_block_t apply = ^{
     // Find the parent NSWindow. addChildWindow hasn't necessarily run
@@ -154,10 +165,9 @@ void ObsInterface::configurePreview(int x, int y, int width, int height) {
     // mainWindow when we don't have a parent linkage.
     NSWindow *parentWindow = [childWindow parentWindow];
     if (!parentWindow) {
-      parentWindow = [NSApp mainWindow];
-      if (!parentWindow) parentWindow = [NSApp keyWindow];
+      parentWindow = targetParent;
       if (parentWindow) {
-        blog(LOG_INFO, "configurePreview: attaching child to %p (mainWindow)",
+        blog(LOG_INFO, "configurePreview: attaching child to %p",
              (__bridge void *)parentWindow);
         [parentWindow addChildWindow:childWindow ordered:NSWindowAbove];
       } else {
@@ -239,4 +249,28 @@ void ObsInterface::hidePreview() {
 void ObsInterface::disablePreview() {
   blog(LOG_INFO, "ObsInterface::disablePreview (mac)");
   hidePreview();
+}
+
+void ObsInterface::destroyPreview() {
+  NSWindow *childWindow = to_window(preview_child_window);
+  if (!childWindow) return;
+
+  blog(LOG_INFO, "ObsInterface::destroyPreview (mac)");
+
+  dispatch_block_t apply = ^{
+    [[childWindow parentWindow] removeChildWindow:childWindow];
+    [childWindow orderOut:nil];
+  };
+  if ([NSThread isMainThread]) {
+    apply();
+  } else {
+    dispatch_sync(dispatch_get_main_queue(), apply);
+  }
+
+  // Balance the CFBridgingRetain calls in initPreview.
+  CFBridgingRelease(reinterpret_cast<void *>(preview_child_window));
+  CFBridgingRelease(reinterpret_cast<void *>(preview_handle));
+  preview_child_window = 0;
+  preview_handle = 0;
+  preview_parent_window = 0;
 }
