@@ -74,6 +74,17 @@ clone_or_update_obs() {
     git -C "${OBS_ROOT}" fetch --quiet --depth 1 origin "${OBS_REF}"
     git -C "${OBS_ROOT}" checkout --quiet FETCH_HEAD
   fi
+
+  # An existing checkout must be at the pinned revision. Plain OBS builds
+  # fine but lacks the replay buffer convert proc buffered recording needs.
+  local expected actual
+  expected="$(git -C "${OBS_ROOT}" rev-parse --verify --quiet "${OBS_REF}^{commit}" || true)"
+  actual="$(git -C "${OBS_ROOT}" rev-parse HEAD)"
+  if [[ "${expected}" != "${actual}" ]]; then
+    log "${OBS_ROOT} is at ${actual}, expected ${OBS_REF} from ${OBS_REPO}."
+    log "Check out that revision there, or remove the directory to clone it."
+    exit 1
+  fi
   # obs-browser and obs-websocket are disabled below, but the plugins
   # CMakeLists still refuses to configure without their submodules.
   log "Initializing submodules"
