@@ -186,10 +186,14 @@ vendor_artifacts() {
           "${NOOBS_ROOT}/PlugIns/"
   done
 
-  local deps
+  local deps arch
   deps="$(deps_dir)"
+  arch="$(uname -m)"
   for lib in "${RUNTIME_DYLIBS[@]}"; do
-    cp "${deps}/lib/${lib}.dylib" "${NOOBS_ROOT}/Frameworks/"
+    local dst="${NOOBS_ROOT}/Frameworks/${lib}.dylib"
+    # obs-deps ships universal binaries; libobs is built for one arch.
+    lipo "${deps}/lib/${lib}.dylib" -thin "${arch}" -output "${dst}" 2>/dev/null ||
+      cp "${deps}/lib/${lib}.dylib" "${dst}"
   done
 
   cp -R "${OBS_ROOT}/libobs/data" "${NOOBS_ROOT}/data/effects"
