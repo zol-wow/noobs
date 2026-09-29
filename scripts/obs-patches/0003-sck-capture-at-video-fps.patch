@@ -1,0 +1,19 @@
+diff --git a/plugins/mac-capture/mac-sck-video-capture.m b/plugins/mac-capture/mac-sck-video-capture.m
+index ebafb252f..626744109 100644
+--- a/plugins/mac-capture/mac-sck-video-capture.m
++++ b/plugins/mac-capture/mac-sck-video-capture.m
+@@ -196,6 +196,14 @@ API_AVAILABLE(macos(12.5)) static bool init_screen_stream(struct screen_capture
+ 
+     CGColorRef background = CGColorGetConstantColor(kCGColorClear);
+     [sc->stream_properties setQueueDepth:8];
++
++    // Capture no faster than frames are rendered. Otherwise ScreenCaptureKit
++    // delivers frames at the display refresh rate and the extras are dropped.
++    struct obs_video_info ovi;
++    if (obs_get_video_info(&ovi) && ovi.fps_num > 0) {
++        [sc->stream_properties setMinimumFrameInterval:CMTimeMake(ovi.fps_den, ovi.fps_num)];
++    }
++
+     [sc->stream_properties setShowsCursor:!sc->hide_cursor];
+     [sc->stream_properties setColorSpaceName:kCGColorSpaceDisplayP3];
+     [sc->stream_properties setBackgroundColor:background];
