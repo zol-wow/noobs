@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-14 # apple silicon runner
+    runs-on: macos-15 # apple silicon runner
     timeout-minutes: 90
     permissions:
       contents: write # softprops/action-gh-release needs to create releases
@@ -24,40 +24,29 @@ jobs:
         uses: actions/checkout@v4
 
       # actions/cache only handles paths inside the workspace. Clone
-      # obs-studio inside ./vendor/ rather than the script's default
+      # obs-studio and ffmpeg inside ./vendor/ rather than the script's default
       # `../obs-studio` and pass the location via OBS_ROOT.
       - name: cache obs-studio + build
         uses: actions/cache@v4
         with:
           path: |
             vendor/obs-studio
-          key: obs-studio-${{ hashFiles('scripts/build-libobs-mac.sh') }}
+            vendor/ffmpeg
+          key: obs-studio-${{ hashFiles('scripts/build-libobs-mac.sh', 'scripts/obs-patches/*') }}
 
-      # OBS 31.0.3's cmake/macos/compilerconfig.cmake requires the
-      # versioned SDK path (`MacOSX14.2.sdk`) — its regex won't match
-      # the default `MacOSX.sdk` symlink. Pin Xcode 15.2 + export
-      # SDKROOT to the versioned path so CMake's auto-detection picks
-      # it up.
-      - name: select Xcode 15.2 + versioned SDK
-        run: |
-          sudo xcode-select -s /Applications/Xcode_15.2.app
-          SDK_PATH="/Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk"
-          if [ ! -d "$SDK_PATH" ]; then
-            echo "Versioned SDK not found at $SDK_PATH; available:"
-            ls /Applications/Xcode_15.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
-            exit 1
-          fi
-          echo "SDKROOT=$SDK_PATH" >> $GITHUB_ENV
-          echo "CMAKE_OSX_SYSROOT=$SDK_PATH" >> $GITHUB_ENV
+      # OBS 31.1 requires Xcode 16+ and the macOS 15 SDK.
+      - name: select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
 
       - name: install build deps
         run: |
-          brew install cmake ninja jq ccache pkg-config
+          brew install cmake jq ccache pkg-config
           sudo xcodebuild -license accept || true
 
       - name: build libobs + plugins (vendor into Frameworks/PlugIns)
         env:
           OBS_ROOT: ${{ github.workspace }}/vendor/obs-studio
+          FFMPEG_ROOT: ${{ github.workspace }}/vendor/ffmpeg
         run: |
           mkdir -p vendor
           chmod +x scripts/build-libobs-mac.sh

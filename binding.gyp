@@ -31,16 +31,16 @@
                     'src/obs_interface_mac.mm',
                 ],
                 'libraries': [
-                    # Vendored libobs (Phase 5) lives at
-                    # noobs/Frameworks/libobs.framework at build time
-                    # and at dist/Frameworks/libobs.framework after
-                    # dist.js. Both rpaths cover the two layouts:
+                    # Vendored libobs lives at Frameworks/ when building
+                    # from a checkout, and at dist/Frameworks/ in the
+                    # published package (which consumers rebuild on
+                    # install). Link against whichever is present. The
+                    # rpaths cover both layouts:
                     #   build/Release/noobs.node → ../../Frameworks
                     #   dist/noobs.node          → Frameworks
                     '-Wl,-rpath,@loader_path/../../Frameworks',
                     '-Wl,-rpath,@loader_path/Frameworks',
-                    '-F<(module_root_dir)/Frameworks',
-                    '-framework libobs',
+                    "<(module_root_dir)/<!(node -p \"require('fs').existsSync('Frameworks/libobs.framework') ? 'Frameworks' : 'dist/Frameworks'\")/libobs.framework/Versions/A/libobs",
                     '-framework Cocoa',
                 ],
                 'xcode_settings': {
