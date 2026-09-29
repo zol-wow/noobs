@@ -3,9 +3,14 @@
 const noobs = require('../index.js');
 const path = require('path');
 
-const capture = process.platform === 'darwin' ? 'screen_capture' : 'monitor_capture';
+const capture =
+  process.platform === 'darwin' ? 'screen_capture' : 'monitor_capture';
 
-noobs.Init(path.resolve(__dirname, '../dist'), path.resolve(__dirname, '../logs'), () => {});
+noobs.Init(
+  path.resolve(__dirname, '../dist'),
+  path.resolve(__dirname, '../logs'),
+  () => {},
+);
 noobs.SetBuffering(true);
 noobs.SetRecordingCfg(path.resolve(__dirname, '../recordings'), 'mp4');
 noobs.AddSourceToScene(noobs.CreateSource('Capture', capture));

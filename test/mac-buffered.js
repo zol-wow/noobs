@@ -43,7 +43,9 @@ async function test() {
 
   const encoders = noobs.ListVideoEncoders();
   console.log('Encoders:', encoders);
-  const vt = encoders.find((e) => e.includes('videotoolbox') && e.includes('avc'));
+  const vt = encoders.find(
+    (e) => e.includes('videotoolbox') && e.includes('avc'),
+  );
   noobs.SetVideoEncoder(vt || 'obs_x264', {});
 
   const display = noobs.CreateSource('Display', 'screen_capture');
@@ -77,9 +79,12 @@ async function test() {
   const ffprobe = path.join(distPath, 'Frameworks', 'ffprobe');
   const probe = JSON.parse(
     execFileSync(ffprobe, [
-      '-v', 'error',
-      '-show_entries', 'format=duration:stream=codec_type,codec_name,width,height',
-      '-of', 'json',
+      '-v',
+      'error',
+      '-show_entries',
+      'format=duration:stream=codec_type,codec_name,width,height',
+      '-of',
+      'json',
       file,
     ]).toString(),
   );
@@ -94,7 +99,9 @@ async function test() {
 
   // Pre-roll snaps to the nearest keyframe, so allow some slack.
   if (!hasVideo || !hasAudio || Math.abs(duration - expected) > 2.5) {
-    console.error(`FAILED: duration ${duration}s (expected ~${expected}s), video ${hasVideo}, audio ${hasAudio}`);
+    console.error(
+      `FAILED: duration ${duration}s (expected ~${expected}s), video ${hasVideo}, audio ${hasAudio}`,
+    );
     process.exit(1);
   }
 
