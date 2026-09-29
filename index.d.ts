@@ -194,6 +194,7 @@ interface Noobs {
 
   // Encoder functions.
   ListVideoEncoders(): string[]; // Returns a list of available video encoders.
+  ListSceneItems(): string[]; // Names of the scene items, bottom to top.
   SetVideoEncoder(id: string, settings: ObsData): void; // Create the video encoder to use.
 
   // Source management functions.
