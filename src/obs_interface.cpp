@@ -1166,6 +1166,16 @@ ObsInterface::~ObsInterface() {
   delete deactivate_ctx;
   delete converted_ctx;
 
+  // Remove the scene items before releasing their sources. Otherwise the
+  // scene can outlive obs_shutdown's cleanup of the sources and its
+  // deferred destroy releases items that point at freed sources.
+  if (scene) {
+    obs_scene_enum_items(scene, [](obs_scene_t*, obs_sceneitem_t* item, void*) {
+      obs_sceneitem_remove(item);
+      return true;
+    }, nullptr);
+  }
+
   // Free + clear without erase-during-iter. Same UB as the volmeter
   // bug — libc++ range-for invalidates the iterator after erase and
   // the next dereference faults under PAC.
