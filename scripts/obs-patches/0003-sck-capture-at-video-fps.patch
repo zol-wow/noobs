@@ -1,19 +1,63 @@
+diff --git a/plugins/mac-capture/mac-sck-common.h b/plugins/mac-capture/mac-sck-common.h
+index 9c9ee0890..85fc1f713 100644
+--- a/plugins/mac-capture/mac-sck-common.h
++++ b/plugins/mac-capture/mac-sck-common.h
+@@ -76,6 +76,8 @@ API_AVAILABLE(macos(12.5)) bool build_window_list(struct screen_capture *sc, obs
+ 
+ API_AVAILABLE(macos(12.5)) bool build_application_list(struct screen_capture *sc, obs_properties_t *props);
+ 
++CMTime video_frame_interval(void);
++
+ static const char *screen_capture_getname(void *unused __unused);
+ 
+ API_AVAILABLE(macos(12.5)) void screen_stream_video_update(struct screen_capture *sc, CMSampleBufferRef sample_buffer);
+diff --git a/plugins/mac-capture/mac-sck-common.m b/plugins/mac-capture/mac-sck-common.m
+index 67e488170..55d0c909e 100644
+--- a/plugins/mac-capture/mac-sck-common.m
++++ b/plugins/mac-capture/mac-sck-common.m
+@@ -166,6 +166,17 @@ bool build_window_list(struct screen_capture *sc, obs_properties_t *props)
+     return true;
+ }
+ 
++// Capture no faster than frames are rendered. Otherwise ScreenCaptureKit
++// delivers frames at the display refresh rate and the extras are dropped.
++CMTime video_frame_interval(void)
++{
++    struct obs_video_info ovi;
++    if (obs_get_video_info(&ovi) && ovi.fps_num > 0)
++        return CMTimeMake(ovi.fps_den, ovi.fps_num);
++
++    return kCMTimeZero;
++}
++
+ bool build_application_list(struct screen_capture *sc, obs_properties_t *props)
+ {
+     os_sem_wait(sc->shareable_content_available);
+@@ -274,6 +285,15 @@ API_AVAILABLE(macos(12.5)) void screen_stream_video_update(struct screen_capture
+             }
+         }
+ 
++        // The video frame rate can change while this stream is running. Only
++        // reconfigure once the frame size is known, as it's set below too.
++        CMTime frame_interval = video_frame_interval();
++        if (sc->frame.size.width > 0 &&
++            CMTimeCompare(sc->stream_properties.minimumFrameInterval, frame_interval) != 0) {
++            [sc->stream_properties setMinimumFrameInterval:frame_interval];
++            needs_to_update_properties = true;
++        }
++
+         if (needs_to_update_properties) {
+             [sc->stream_properties setWidth:(size_t) sc->frame.size.width];
+             [sc->stream_properties setHeight:(size_t) sc->frame.size.height];
 diff --git a/plugins/mac-capture/mac-sck-video-capture.m b/plugins/mac-capture/mac-sck-video-capture.m
-index ebafb252f..626744109 100644
+index ebafb252f..9fc075886 100644
 --- a/plugins/mac-capture/mac-sck-video-capture.m
 +++ b/plugins/mac-capture/mac-sck-video-capture.m
-@@ -196,6 +196,14 @@ API_AVAILABLE(macos(12.5)) static bool init_screen_stream(struct screen_capture
+@@ -196,6 +196,7 @@ API_AVAILABLE(macos(12.5)) static bool init_screen_stream(struct screen_capture
  
      CGColorRef background = CGColorGetConstantColor(kCGColorClear);
      [sc->stream_properties setQueueDepth:8];
-+
-+    // Capture no faster than frames are rendered. Otherwise ScreenCaptureKit
-+    // delivers frames at the display refresh rate and the extras are dropped.
-+    struct obs_video_info ovi;
-+    if (obs_get_video_info(&ovi) && ovi.fps_num > 0) {
-+        [sc->stream_properties setMinimumFrameInterval:CMTimeMake(ovi.fps_den, ovi.fps_num)];
-+    }
-+
++    [sc->stream_properties setMinimumFrameInterval:video_frame_interval()];
      [sc->stream_properties setShowsCursor:!sc->hide_cursor];
      [sc->stream_properties setColorSpaceName:kCGColorSpaceDisplayP3];
      [sc->stream_properties setBackgroundColor:background];
