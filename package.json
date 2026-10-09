@@ -11,6 +11,7 @@
     "build": "node-gyp rebuild && node dist.js",
     "test-errors": "ts-node --project test/tsconfig.json test/errors.ts",
     "test-preview": "ts-node --project test/tsconfig.json test/preview.ts",
+    "test-shutdown": "node test/shutdown-while-buffering.js",
     "configure-cursor-anysphere": "node-gyp configure -- -f compile_commands_json && copy build\\Release\\compile_commands.json src\\compile_commands.json"
   },
   "files": [
