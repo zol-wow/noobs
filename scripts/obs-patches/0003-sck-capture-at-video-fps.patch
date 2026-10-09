@@ -1,8 +1,16 @@
 diff --git a/plugins/mac-capture/mac-sck-common.h b/plugins/mac-capture/mac-sck-common.h
-index 9c9ee0890..85fc1f713 100644
+index 9c9ee0890..64d64605d 100644
 --- a/plugins/mac-capture/mac-sck-common.h
 +++ b/plugins/mac-capture/mac-sck-common.h
-@@ -76,6 +76,8 @@ API_AVAILABLE(macos(12.5)) bool build_window_list(struct screen_capture *sc, obs
+@@ -58,6 +58,7 @@ struct API_AVAILABLE(macos(12.5)) screen_capture {
+     bool capture_failed;
+ 
+     pthread_mutex_t mutex;
++    CMTime frame_interval;
+ 
+     ScreenCaptureStreamType capture_type;
+     ScreenCaptureAudioStreamType audio_capture_type;
+@@ -76,6 +77,8 @@ API_AVAILABLE(macos(12.5)) bool build_window_list(struct screen_capture *sc, obs
  
  API_AVAILABLE(macos(12.5)) bool build_application_list(struct screen_capture *sc, obs_properties_t *props);
  
@@ -12,15 +20,17 @@ index 9c9ee0890..85fc1f713 100644
  
  API_AVAILABLE(macos(12.5)) void screen_stream_video_update(struct screen_capture *sc, CMSampleBufferRef sample_buffer);
 diff --git a/plugins/mac-capture/mac-sck-common.m b/plugins/mac-capture/mac-sck-common.m
-index 67e488170..55d0c909e 100644
+index 67e488170..5a7ad414a 100644
 --- a/plugins/mac-capture/mac-sck-common.m
 +++ b/plugins/mac-capture/mac-sck-common.m
-@@ -166,6 +166,17 @@ bool build_window_list(struct screen_capture *sc, obs_properties_t *props)
+@@ -166,6 +166,19 @@ bool build_window_list(struct screen_capture *sc, obs_properties_t *props)
      return true;
  }
  
 +// Capture no faster than frames are rendered. Otherwise ScreenCaptureKit
 +// delivers frames at the display refresh rate and the extras are dropped.
++// Only call this on the graphics thread: a video reset frees the mix this
++// reads, and stops the graphics thread first.
 +CMTime video_frame_interval(void)
 +{
 +    struct obs_video_info ovi;
@@ -33,16 +43,15 @@ index 67e488170..55d0c909e 100644
  bool build_application_list(struct screen_capture *sc, obs_properties_t *props)
  {
      os_sem_wait(sc->shareable_content_available);
-@@ -274,6 +285,15 @@ API_AVAILABLE(macos(12.5)) void screen_stream_video_update(struct screen_capture
+@@ -274,6 +287,14 @@ API_AVAILABLE(macos(12.5)) void screen_stream_video_update(struct screen_capture
              }
          }
  
 +        // The video frame rate can change while this stream is running. Only
 +        // reconfigure once the frame size is known, as it's set below too.
-+        CMTime frame_interval = video_frame_interval();
 +        if (sc->frame.size.width > 0 &&
-+            CMTimeCompare(sc->stream_properties.minimumFrameInterval, frame_interval) != 0) {
-+            [sc->stream_properties setMinimumFrameInterval:frame_interval];
++            CMTimeCompare(sc->stream_properties.minimumFrameInterval, sc->frame_interval) != 0) {
++            [sc->stream_properties setMinimumFrameInterval:sc->frame_interval];
 +            needs_to_update_properties = true;
 +        }
 +
@@ -50,14 +59,40 @@ index 67e488170..55d0c909e 100644
              [sc->stream_properties setWidth:(size_t) sc->frame.size.width];
              [sc->stream_properties setHeight:(size_t) sc->frame.size.height];
 diff --git a/plugins/mac-capture/mac-sck-video-capture.m b/plugins/mac-capture/mac-sck-video-capture.m
-index ebafb252f..9fc075886 100644
+index ebafb252f..aabcabd0f 100644
 --- a/plugins/mac-capture/mac-sck-video-capture.m
 +++ b/plugins/mac-capture/mac-sck-video-capture.m
-@@ -196,6 +196,7 @@ API_AVAILABLE(macos(12.5)) static bool init_screen_stream(struct screen_capture
+@@ -196,6 +196,10 @@ API_AVAILABLE(macos(12.5)) static bool init_screen_stream(struct screen_capture
  
      CGColorRef background = CGColorGetConstantColor(kCGColorClear);
      [sc->stream_properties setQueueDepth:8];
-+    [sc->stream_properties setMinimumFrameInterval:video_frame_interval()];
++    if (!pthread_mutex_lock(&sc->mutex)) {
++        [sc->stream_properties setMinimumFrameInterval:sc->frame_interval];
++        pthread_mutex_unlock(&sc->mutex);
++    }
      [sc->stream_properties setShowsCursor:!sc->hide_cursor];
      [sc->stream_properties setColorSpaceName:kCGColorSpaceDisplayP3];
      [sc->stream_properties setBackgroundColor:background];
+@@ -289,6 +293,7 @@ API_AVAILABLE(macos(12.5)) static void *sck_video_capture_create(obs_data_t *set
+ 
+     sc->application_id = [[NSString alloc] initWithUTF8String:obs_data_get_string(settings, "application")];
+     pthread_mutex_init(&sc->mutex, NULL);
++    sc->frame_interval = kCMTimeZero;
+ 
+     if (!init_screen_stream(sc))
+         goto fail;
+@@ -305,6 +310,14 @@ API_AVAILABLE(macos(12.5)) static void sck_video_capture_tick(void *data, float
+ {
+     struct screen_capture *sc = data;
+ 
++    // Cache the frame interval for the capture callback, which runs on a
++    // ScreenCaptureKit queue and can't read the video info safely.
++    CMTime frame_interval = video_frame_interval();
++    if (!pthread_mutex_lock(&sc->mutex)) {
++        sc->frame_interval = frame_interval;
++        pthread_mutex_unlock(&sc->mutex);
++    }
++
+     if (!sc->current)
+         return;
+     if (!obs_source_showing(sc->source))
