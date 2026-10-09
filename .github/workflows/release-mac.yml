@@ -1,9 +1,9 @@
 name: release-mac
 on:
   push:
-    tags: ['v*-mac', 'v*']
+    tags: ['v*-mac']
   pull_request:
-    branches: [feat/macos-port, main]
+    branches: [main]
   workflow_dispatch:
 
 # Cancel in-flight runs of the same workflow for the same ref so
