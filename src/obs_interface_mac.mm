@@ -283,7 +283,8 @@ bool isWindowOnScreen(uint32_t windowId) {
   if (CFArrayGetCount(windows) > 0) {
     CFDictionaryRef window =
         (CFDictionaryRef)CFArrayGetValueAtIndex(windows, 0);
-    // The key is left out when the window isn't on screen.
+    // The key can be left out when the window isn't on screen. A closed
+    // window isn't listed at all.
     CFBooleanRef value =
         (CFBooleanRef)CFDictionaryGetValue(window, kCGWindowIsOnscreen);
     onScreen = value && CFBooleanGetValue(value);
