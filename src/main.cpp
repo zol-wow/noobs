@@ -661,7 +661,8 @@ Napi::Value ObsGetSourcePos(const Napi::CallbackInfo& info) {
 
   std::string name = info[0].As<Napi::String>().Utf8Value();
 
-  vec2 pos; vec2 size; vec2 scale; obs_sceneitem_crop crop;
+  // Zeroed so a source missing from the scene reads as empty.
+  vec2 pos = {}; vec2 size = {}; vec2 scale = {}; obs_sceneitem_crop crop = {};
   obs->getSourcePos(name, &pos, &size, &scale, &crop);
 
   Napi::Object result = Napi::Object::New(info.Env());
