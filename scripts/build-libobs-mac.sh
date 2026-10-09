@@ -157,15 +157,23 @@ build_ffmpeg_tools() {
     exit 1
   fi
 
+  # Same minimum macOS as OBS, otherwise the tools need the build host's.
+  local min_macos="12.0"
+
   log "Building ffmpeg + ffprobe ${version}"
   (
     cd "${FFMPEG_ROOT}"
+    if [[ -f ffmpeg ]] &&
+      [[ "$(vtool -show-build ffmpeg | awk '/minos/ {print $2}')" != "${min_macos}" ]]; then
+      make clean > /dev/null 2>&1
+    fi
     ./configure \
       --enable-shared --disable-static \
       --disable-autodetect --disable-postproc \
       --disable-doc --disable-debug \
       --install-name-dir='@rpath' \
-      --extra-ldflags='-Wl,-rpath,@executable_path' \
+      --extra-cflags="-mmacosx-version-min=${min_macos}" \
+      --extra-ldflags="-mmacosx-version-min=${min_macos} -Wl,-rpath,@executable_path" \
       > "${OBS_BUILD}/ffmpeg-configure.log" 2>&1
     make -j"$(sysctl -n hw.ncpu)" ffmpeg ffprobe \
       > "${OBS_BUILD}/ffmpeg-build.log" 2>&1
