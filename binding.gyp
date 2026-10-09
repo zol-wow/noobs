@@ -46,7 +46,7 @@
                 'xcode_settings': {
                     'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
                     'CLANG_CXX_LIBRARY': 'libc++',
-                    'MACOSX_DEPLOYMENT_TARGET': '11.0',
+                    'MACOSX_DEPLOYMENT_TARGET': '13.0',
                     # The C++ source uses `throw std::runtime_error(...)` in
                     # several error paths. Default node-gyp on macOS sets
                     # GCC_ENABLE_CPP_EXCEPTIONS = NO and adds -fno-exceptions

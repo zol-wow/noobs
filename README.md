@@ -20,7 +20,8 @@ Uses a [custom](https://github.com/aza547/warcraft-recorder-obs-studio) fork of 
   `image-source`, `obs-filters`. `ffmpeg` and `ffprobe` ship in
   `dist/Frameworks`, linked against the same libav* dylibs.
 
-  To build: `./scripts/build-libobs-mac.sh`, then `npm run build`.
+  To build: `./scripts/build-libobs-mac.sh`, then `npm install` and
+  `npm run build`.
   `node test/mac-buffered.js` records the screen with a 5s pre-roll
   and checks the result (the terminal needs Screen Recording
   permission).

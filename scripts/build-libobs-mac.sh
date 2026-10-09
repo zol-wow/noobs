@@ -149,6 +149,14 @@ build_ffmpeg_tools() {
       https://github.com/FFmpeg/FFmpeg.git "${FFMPEG_ROOT}"
   fi
 
+  # The tools must match the libav* dylibs they're shipped with.
+  local checkout
+  checkout="$(git -C "${FFMPEG_ROOT}" describe --tags --exact-match 2>/dev/null || true)"
+  if [[ "${checkout}" != "${version}" ]]; then
+    log "${FFMPEG_ROOT} is at '${checkout:-unknown}', expected ${version}. Remove it or check out ${version}."
+    exit 1
+  fi
+
   log "Building ffmpeg + ffprobe ${version}"
   (
     cd "${FFMPEG_ROOT}"
