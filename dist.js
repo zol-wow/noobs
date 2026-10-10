@@ -66,7 +66,7 @@ if (process.platform === 'win32') {
     filter: (src) => !src.endsWith('.pdb') // Exclude PDB files, they are debug files and they are huge.
   });
 } else if (process.platform === 'darwin') {
-  // Mac dist layout (Phase 5 / 6 of the macOS port):
+  // Mac dist layout:
   //   dist/noobs.node                  the native addon
   //   dist/Frameworks/*                libobs.framework + dylibs +
   //                                    obs-ffmpeg-mux helper

@@ -151,11 +151,8 @@ int ObsInterface::reset_video(int fps, int width, int height) {
   ovi.scale_type = OBS_SCALE_BILINEAR;
   ovi.adapter = 0;
   // gpu_conversion routes BGRA→NV12 through the graphics backend.
-  // CPU fallback (false) on libobs-opengl Mac produces all-green
-  // frames — the CPU NV12 packing path is rotted vs the GPU shader
-  // path that OBS actually uses. Vanilla libobs handles the GPU
-  // path fine on both Win/D3D11 and Mac/OpenGL once reset_video
-  // succeeds, which it does in our Phase 5 build.
+  // The CPU fallback produces all-green frames with libobs-opengl on
+  // Mac, and the GPU path is what OBS itself uses.
   ovi.gpu_conversion = true;
 #ifdef _WIN32
   ovi.graphics_module = "libobs-d3d11.dll";
@@ -220,7 +217,7 @@ void ObsInterface::init_obs(const std::string& distPath) {
   // executable (Node/Electron), and falls back to a PATH search when
   // it isn't there. Put our Frameworks/ dir, which holds the helper,
   // at the front of PATH. Mirrors what index.js does for the DLLs on
-  // Windows.
+  // Windows. Child processes spawned later inherit this PATH too.
   std::string frameworksPath = basePath + "Frameworks";
   const char* existingPath = getenv("PATH");
   std::string newPath = frameworksPath;
@@ -238,20 +235,20 @@ void ObsInterface::init_obs(const std::string& distPath) {
   std::string pluginPath = basePath + "obs-plugins/";
   std::string pluginDataPath = basePath + "data/obs-plugins/";
 #elif defined(__APPLE__)
-  // Mac layout (mirrors the .plugin bundle convention used by OBS-Mac
-  // and the Streamlabs OSN tarball):
+  // Mac layout (the .plugin bundle convention used by OBS on Mac):
   //   <dist>/PlugIns/<name>.plugin/Contents/MacOS/<name>     (binary)
   //   <dist>/PlugIns/<name>.plugin/Contents/Resources/        (data)
   // Mac module path = bundle binary path; libobs's bundle loader
   // figures out Resources/ from there.
   std::string pluginPath = basePath + "PlugIns/";
-  std::string pluginDataPath = basePath + "PlugIns/"; // unused on Mac, kept for parity
 #endif
 
   blog(LOG_INFO, "Base path: %s", basePath.c_str());
   blog(LOG_INFO, "Effects path: %s", effectsPath.c_str());
   blog(LOG_INFO, "Plugin path: %s", pluginPath.c_str());
+#ifdef _WIN32
   blog(LOG_INFO, "Data path: %s", pluginDataPath.c_str());
+#endif
 
   // Add the effects path. We need this before resetting video and audio
   // to ensure the effects are available. The function is deprecated in
