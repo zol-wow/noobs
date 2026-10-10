@@ -106,6 +106,20 @@ Napi::Value ObsListSceneItems(const Napi::CallbackInfo& info) {
   return result;
 }
 
+#ifdef __APPLE__
+Napi::Value IsWindowOnScreen(const Napi::CallbackInfo& info) {
+  bool valid = info.Length() == 1 && info[0].IsNumber();
+
+  if (!valid) {
+    Napi::TypeError::New(info.Env(), "Invalid arguments passed to IsWindowOnScreen").ThrowAsJavaScriptException();
+    return info.Env().Undefined();
+  }
+
+  uint32_t windowId = info[0].As<Napi::Number>().Uint32Value();
+  return Napi::Boolean::New(info.Env(), isWindowOnScreen(windowId));
+}
+#endif
+
 Napi::Value ObsListVideoEncoders(const Napi::CallbackInfo& info) {
   if (!obs) {
     blog(LOG_ERROR, "ObsListVideoEncoders called but obs is not initialized");
@@ -767,6 +781,9 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
   exports.Set("ResetVideoContext", Napi::Function::New(env, ObsResetVideoContext));
   exports.Set("ListVideoEncoders", Napi::Function::New(env, ObsListVideoEncoders));
   exports.Set("ListSceneItems", Napi::Function::New(env, ObsListSceneItems));
+#ifdef __APPLE__
+  exports.Set("IsWindowOnScreen", Napi::Function::New(env, IsWindowOnScreen));
+#endif
   exports.Set("SetVideoEncoder", Napi::Function::New(env, ObsSetVideoEncoder));
 
   exports.Set("SetBuffering", Napi::Function::New(env, ObsSetBuffering));

@@ -274,3 +274,22 @@ void ObsInterface::destroyPreview() {
   preview_handle = 0;
   preview_parent_window = 0;
 }
+
+bool isWindowOnScreen(uint32_t windowId) {
+  CFArrayRef windows =
+      CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow, windowId);
+  if (!windows) return false;
+
+  bool onScreen = false;
+  if (CFArrayGetCount(windows) > 0) {
+    CFDictionaryRef window =
+        (CFDictionaryRef)CFArrayGetValueAtIndex(windows, 0);
+    // The key is left out when the window isn't on screen.
+    CFBooleanRef value =
+        (CFBooleanRef)CFDictionaryGetValue(window, kCGWindowIsOnscreen);
+    onScreen = value && CFBooleanGetValue(value);
+  }
+
+  CFRelease(windows);
+  return onScreen;
+}

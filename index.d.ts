@@ -185,6 +185,7 @@ interface Noobs {
   // Encoder functions.
   ListVideoEncoders(): string[]; // Returns a list of available video encoders.
   ListSceneItems(): string[]; // Names of the scene items, bottom to top.
+  IsWindowOnScreen(windowId: number): boolean; // macOS only. False if the window closed, is minimised or is on another Space.
   SetVideoEncoder(id: string, settings: ObsData): void; // Create the video encoder to use.
 
   // Source management functions.
