@@ -39,6 +39,12 @@ struct SignalData {
   std::optional<std::string> path; // used by converted signal handler
 };
 
+#ifdef __APPLE__
+// Whether a window is on screen. A closed window, or a minimised one or one
+// on another Space, is not.
+bool isWindowOnScreen(uint32_t windowId);
+#endif
+
 struct SignalContext {
   ObsInterface* self;
   std::string id;
