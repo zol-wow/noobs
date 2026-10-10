@@ -21,8 +21,7 @@
 #elif defined(__APPLE__)
 #define AUDIO_INPUT "coreaudio_input_capture"
 #define AUDIO_OUTPUT "coreaudio_output_capture"
-// macOS per-app audio capture goes through SCK's sck_audio_capture.
-// Phase 1 stub: defined for symbol parity, not exercised yet.
+// ScreenCaptureKit audio, used for both desktop and per-app audio.
 #define AUDIO_PROCESS "sck_audio_capture"
 #else
 #error "Unsupported platform"

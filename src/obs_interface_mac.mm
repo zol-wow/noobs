@@ -1,6 +1,6 @@
 // macOS-specific preview implementation. ObjC++ to deal with Cocoa.
 //
-// Architecture (Path B, the nwr-style child-window pattern):
+// Architecture (child window):
 //   - JS hands us a parent NSView pointer (BrowserWindow's contentView,
 //     fetched via Electron's getNativeWindowHandle).
 //   - We grab its parent NSWindow and create a borderless,
@@ -101,9 +101,8 @@ void ObsInterface::initPreview(uintptr_t parentHandle) {
   // CFBridgingRetain transfers ownership to CF (i.e. retains under
   // ARC) so the void* we stash in the C++ side keeps the window
   // alive after this method returns. addChildWindow also retains,
-  // but relying solely on Cocoa's internal retain has bitten us
-  // before — explicit ownership keeps the lifetime tied to the
-  // ObsInterface instance.
+  // but our own reference ties the lifetime to the ObsInterface
+  // instance rather than to Cocoa's window bookkeeping.
   preview_handle = reinterpret_cast<uintptr_t>(CFBridgingRetain(canvasView));
   preview_child_window =
       reinterpret_cast<uintptr_t>(CFBridgingRetain(childWindow));
