@@ -144,10 +144,7 @@ void ObsInterface::configurePreview(int x, int y, int width, int height) {
     return;
   }
 
-  // Need the parent BrowserWindow's NSWindow. The renderer-side
-  // initPreview handed us its contentView pointer; recover the
-  // window from it. Cached as preview_handle's superview chain root
-  // through canvasView's window once attached.
+  // initPreview creates the canvas view; nothing to configure without it.
   NSView *canvasView = (__bridge NSView *)reinterpret_cast<void *>(preview_handle);
   if (!canvasView) {
     blog(LOG_ERROR, "configurePreview: canvas view missing");
@@ -159,9 +156,7 @@ void ObsInterface::configurePreview(int x, int y, int width, int height) {
 
   __block CGFloat backingScale = 1.0;
   dispatch_block_t apply = ^{
-    // Find the parent NSWindow. addChildWindow hasn't necessarily run
-    // yet — fall back to walking the host process's keyWindow /
-    // mainWindow when we don't have a parent linkage.
+    // Attach the child to the cached parent window on first use.
     NSWindow *parentWindow = [childWindow parentWindow];
     if (!parentWindow) {
       parentWindow = targetParent;
