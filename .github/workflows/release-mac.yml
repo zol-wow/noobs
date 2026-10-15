@@ -32,7 +32,7 @@ jobs:
           path: |
             vendor/obs-studio
             vendor/ffmpeg
-          key: obs-studio-${{ hashFiles('scripts/build-libobs-mac.sh', 'scripts/obs-patches/*') }}
+          key: obs-studio-${{ hashFiles('scripts/build-libobs-mac.sh') }}
 
       # OBS 31.1 requires Xcode 16+ and the macOS 15 SDK.
       - name: select Xcode 16

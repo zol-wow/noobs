@@ -7,8 +7,7 @@
 #
 # Run from the noobs repo root. Expects an obs-studio checkout at
 # ../obs-studio (same parent dir as this repo). If that doesn't exist,
-# the script clones it at the pinned ref. Patches in scripts/obs-patches
-# are applied on top.
+# the script clones it at the pinned ref.
 #
 # Output:
 #   Frameworks/libobs.framework
@@ -26,13 +25,14 @@
 
 set -euo pipefail
 
-OBS_REPO="${OBS_REPO:-https://github.com/aza547/warcraft-recorder-obs-studio.git}"
-# replay-buffer-to-disk branch (31.1.1 + replay buffer convert + locking).
-OBS_REF="${OBS_REF:-0d3069e631568e0e44d5301b535f9eb203ef81f9}"
+# replay-buffer-to-disk (31.1.1 + replay buffer convert + locking) plus
+# the macOS fixes on feature/add-macos-support. Switch to
+# aza547/warcraft-recorder-obs-studio once those are merged there.
+OBS_REPO="${OBS_REPO:-https://github.com/zol-wow/warcraft-recorder-obs-studio.git}"
+OBS_REF="${OBS_REF:-18b988a37bbdf43780c34d0a7754f43a82c1d1f3}"
 NOOBS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OBS_ROOT="${OBS_ROOT:-${NOOBS_ROOT}/../obs-studio}"
 OBS_BUILD="${OBS_ROOT}/build_macos"
-PATCH_DIR="${NOOBS_ROOT}/scripts/obs-patches"
 FFMPEG_ROOT="${FFMPEG_ROOT:-${NOOBS_ROOT}/../ffmpeg}"
 
 PLUGINS=(
@@ -89,18 +89,6 @@ clone_or_update_obs() {
   # CMakeLists still refuses to configure without their submodules.
   log "Initializing submodules"
   git -C "${OBS_ROOT}" submodule update --init --recursive --depth 1
-}
-
-apply_patches() {
-  for patch in "${PATCH_DIR}"/*.patch; do
-    [[ -e "${patch}" ]] || continue
-    if git -C "${OBS_ROOT}" apply --reverse --check "${patch}" 2>/dev/null; then
-      log "Patch already applied: $(basename "${patch}")"
-    else
-      log "Applying patch: $(basename "${patch}")"
-      git -C "${OBS_ROOT}" apply "${patch}"
-    fi
-  done
 }
 
 deps_dir() {
@@ -234,7 +222,6 @@ vendor_artifacts() {
 
 main() {
   clone_or_update_obs
-  apply_patches
   configure_obs
   build_target libobs
   build_target libobs-opengl
