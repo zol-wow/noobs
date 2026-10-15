@@ -284,7 +284,6 @@ void ObsInterface::init_obs(const std::string& distPath) {
     { "obs-qsv11",    false }, // Required for QSV video encoding.
     { "obs-filters",  false }, // Required for audio filters.
   };
-  const std::string moduleExt = ".dll";
 #elif defined(__APPLE__)
   std::vector<ModuleEntry> modules = {
     { "obs-x264",         false }, // Software H.264 encoder fallback.
